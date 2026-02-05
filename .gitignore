@@ -1,0 +1,15 @@
+# Python 產生檔案
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 資料庫 (如果是開發階段，通常不進版本控制)
+*.sqlite3
+
+# 環境變數
+.env
+venv/
+.venv/
+
+# Django 靜態檔案
+static/
