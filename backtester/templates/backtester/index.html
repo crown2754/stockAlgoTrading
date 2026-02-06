@@ -1,69 +1,653 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>0050 交易平台</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>好知識量化回測與數據中心</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background-color: #f4f7f6; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { color: #333; text-align: center; }
-        .input-group { text-align: center; margin-bottom: 20px; }
-        input { width: 60%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
-        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        .data-card { margin-top: 30px; padding: 20px; border-left: 5px solid #007bff; background: #e9ecef; }
-        .price { font-size: 1.5em; color: #28a745; font-weight: bold; }
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f6f9;
+      }
+      .container {
+        max-width: 1400px;
+        margin: auto;
+      }
+
+      /* 佈局 */
+      .control-panel {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .main-content {
+        display: grid;
+        grid-template-columns: 3fr 1fr;
+        gap: 20px;
+      }
+      .chart-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        min-height: 500px;
+      }
+      .log-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        max-height: 600px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      /* 【新增】排行榜區塊樣式 */
+      .leaderboard-section {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-top: 20px;
+      }
+
+      /* 輸入元件 */
+      label {
+        font-weight: 600;
+        color: #555;
+        font-size: 0.9em;
+        margin-right: 5px;
+      }
+      input,
+      select {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        outline: none;
+        font-size: 0.95em;
+      }
+      input:focus,
+      select:focus {
+        border-color: #007bff;
+      }
+
+      /* 按鈕 */
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        color: white;
+      }
+      .btn-run {
+        background: #007bff;
+      }
+      .btn-run:hover {
+        background: #0056b3;
+      }
+      .btn-update {
+        background: #6c757d;
+      }
+      .btn-update:hover {
+        background: #545b62;
+      }
+
+      /* MACD 參數區 - 藍色風格 */
+      .macd-params {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #eef6fc;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #dbe9f5;
+      }
+      .macd-params input {
+        width: 45px;
+        text-align: center;
+        border: 1px solid #bbd6ee;
+        color: #0056b3;
+        font-weight: bold;
+      }
+      .macd-params select {
+        max-width: 200px;
+        border: 1px solid #bbd6ee;
+        color: #333;
+      }
+
+      /* 結果顯示 */
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+      }
+      .stat-item {
+        text-align: right;
+      }
+      .stat-val {
+        font-size: 1.4em;
+        font-weight: bold;
+        color: #28a745;
+      }
+
+      /* 表格 */
+      .log-list {
+        flex: 1;
+        overflow-y: auto;
+        border: 1px solid #eee;
+        border-radius: 6px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9em;
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: #f8f9fa;
+        padding: 8px;
+        text-align: center; /* 統一置中 */
+        font-size: 0.85em;
+        color: #666;
+      }
+      td {
+        padding: 8px;
+        border-bottom: 1px solid #f1f1f1;
+        text-align: center; /* 統一置中 */
+      }
+      .buy {
+        color: #d9534f;
+        font-weight: bold;
+      }
+      .sell {
+        color: #28a745;
+        font-weight: bold;
+      }
+
+      @media (max-width: 1000px) {
+        .main-content {
+          grid-template-columns: 1fr;
+        }
+        .log-section {
+          max-height: 400px;
+        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="app" class="container">
-        <h1>股票即時資訊</h1>
-        
-        <div class="input-group">
-            <input v-model="symbol" @keyup.enter="fetchStock" placeholder="輸入代號 (如 0050.TW)" />
-            <button @click="fetchStock">查詢價格</button>
+      <div class="control-panel">
+        <div>
+          <label>股票</label
+          ><input v-model="symbol" style="width: 80px" placeholder="0050" />
+        </div>
+        <div>
+          <label>本金</label
+          ><input
+            type="number"
+            v-model.number="backtestParams.init_cash"
+            style="width: 100px"
+          />
+        </div>
+        <div>
+          <label>區間</label>
+          <input type="date" v-model="backtestParams.start_date" /> ~
+          <input type="date" v-model="backtestParams.end_date" />
+        </div>
+        <div>
+          <label>策略</label>
+          <select v-model="selectedStrategy">
+            <option value="macd">MACD 趨勢</option>
+            <option value="default_kd">KD 反轉</option>
+            <option value="trend_kd">KD + 趨勢</option>
+          </select>
         </div>
 
-        <div v-if="stockData" class="data-card">
-            {% verbatim %}
-                <p><strong>股票代號:</strong> {{ stockData.symbol }}</p>
-                <p><strong>當前價格:</strong> <span class="price">{{ stockData.last_price }}</span></p>
-                <p><strong>查詢時間:</strong> {{ stockData.date }}</p>
-                <p><strong>訊息:</strong> {{ stockData.message }}</p>
-            {% endverbatim %}
+        <div v-if="selectedStrategy === 'macd'" class="macd-params">
+          <select v-model="selectedTemplate" @change="applyTemplate">
+            <option :value="-1" disabled>請選擇參數模板...</option>
+            <option v-for="(t, index) in macdTemplates" :value="index">
+              [[ t.name ]] ([[ t.vals.join(',') ]])
+            </option>
+          </select>
+
+          <input
+            type="number"
+            v-model.number="backtestParams.m1"
+            title="快線 (Fast)"
+          />
+          <input
+            type="number"
+            v-model.number="backtestParams.m2"
+            title="慢線 (Slow)"
+          />
+          <input
+            type="number"
+            v-model.number="backtestParams.m3"
+            title="訊號 (Signal)"
+          />
         </div>
 
-        <p v-if="loading" style="text-align: center;">數據抓取中...</p>
+        <div style="margin-left: auto; display: flex; gap: 10px">
+          <button class="btn-run" @click="runBacktest" :disabled="loading">
+            [[ loading ? '運算中...' : '執行回測' ]]
+          </button>
+          <button
+            class="btn-update"
+            @click="updateStockData"
+            :disabled="updating"
+          >
+            更新/重抓資料
+          </button>
+        </div>
+      </div>
+
+      <div class="main-content" v-if="backtestResult">
+        <div class="chart-section">
+          <div class="result-header">
+            <div>
+              <div style="font-size: 1.2em; font-weight: bold">
+                [[ backtestResult.symbol ]] 回測結果
+              </div>
+              <div style="color: #888; font-size: 0.9em">
+                [[ backtestResult.start_date ]] ~ [[ backtestResult.end_date ]]
+                <span
+                  v-if="selectedStrategy === 'macd'"
+                  style="
+                    margin-left: 10px;
+                    background: #eef6fc;
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    font-size: 0.85em;
+                  "
+                >
+                  參數: [[ backtestParams.m1 ]], [[ backtestParams.m2 ]], [[
+                  backtestParams.m3 ]]
+                </span>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div style="color: #666; font-size: 0.9em">總報酬率</div>
+              <div
+                class="stat-val"
+                :style="{ color: backtestResult.total_return_pct >= 0 ? '#d9534f' : '#28a745' }"
+              >
+                [[ backtestResult.total_return_pct ]]%
+              </div>
+              <div style="font-size: 0.9em; font-weight: bold">
+                $[[ backtestResult.final_value.toLocaleString() ]]
+              </div>
+            </div>
+          </div>
+          <div id="main-chart" style="width: 100%; height: 450px"></div>
+        </div>
+
+        <div class="log-section">
+          <h4 style="margin-top: 0; margin-bottom: 10px">📜 模擬交易紀錄</h4>
+          <div class="log-list">
+            <table>
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>動作</th>
+                  <th>股數</th>
+                  <th>價格</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(log, index) in backtestResult.trade_log"
+                  :key="index"
+                >
+                  <td>[[ log.date ]]</td>
+                  <td :class="log.action === '買入' ? 'buy' : 'sell'">
+                    [[ log.action ]]
+                  </td>
+                  <td>[[ log.size ]]</td>
+                  <td>$[[ log.price ]]</td>
+                </tr>
+                <tr v-if="backtestResult.trade_log.length === 0">
+                  <td
+                    colspan="4"
+                    style="text-align: center; color: #999; padding: 20px"
+                  >
+                    無交易訊號
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div v-else style="text-align: center; padding: 50px; color: #999">
+        請點擊「執行回測」以查看結果
+      </div>
+
+      <div class="leaderboard-section">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+          "
+        >
+          <h3 style="margin: 0">
+            🏆 0050 策略競技場 (即時排名)
+            <span
+              v-if="leaderboardDate"
+              style="font-size: 0.6em; color: #888; margin-left: 10px"
+              >數據日期: [[ leaderboardDate ]]</span
+            >
+          </h3>
+          <button
+            @click="fetchLeaderboard"
+            style="padding: 5px 15px; font-size: 0.9em; background: #6610f2"
+          >
+            🔄 刷新戰況
+          </button>
+        </div>
+
+        <table>
+          <thead>
+            <tr style="background: #f8f9fa; color: #666">
+              <th style="padding: 10px">排名</th>
+              <th>策略參數</th>
+              <th>目前動作</th>
+              <th>持有股數</th>
+              <th>總資產</th>
+              <th>報酬率 (ROI)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(item, index) in leaderboard"
+              :key="index"
+              style="border-bottom: 1px solid #eee; text-align: center"
+            >
+              <td style="padding: 12px; font-weight: bold">
+                <span v-if="index === 0">👑</span>
+                <span v-else>#[[ index + 1 ]]</span>
+              </td>
+              <td>[[ item.strategy ]]</td>
+              <td>
+                <span
+                  v-if="item.action === 'BUY'"
+                  style="
+                    color: white;
+                    background: #d9534f;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    font-size: 0.8em;
+                  "
+                  >買進</span
+                >
+                <span
+                  v-else-if="item.action === 'SELL'"
+                  style="
+                    color: white;
+                    background: #28a745;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    font-size: 0.8em;
+                  "
+                  >賣出</span
+                >
+                <span
+                  v-else-if="item.shares > 0"
+                  style="
+                    color: white;
+                    background: #007bff;
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    font-size: 0.8em;
+                  "
+                  >持倉中</span
+                >
+                <span v-else style="color: #999">空手</span>
+              </td>
+              <td>[[ item.shares ]]</td>
+              <td>$[[ item.assets.toLocaleString() ]]</td>
+              <td
+                :style="{ color: item.roi >= 0 ? '#d9534f' : '#28a745', fontWeight: 'bold' }"
+              >
+                [[ item.roi ]]%
+              </td>
+            </tr>
+            <tr v-if="leaderboard.length === 0">
+              <td colspan="6" style="padding: 20px; color: #999">
+                目前無資料，請執行後台 python monitor_top10.py
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <script>
-        const { createApp } = Vue;
-        createApp({
-            data() {
-                return {
-                    symbol: "0050.TW",
-                    stockData: null,
-                    loading: false
-                };
+      new Vue({
+        el: "#app",
+        delimiters: ["[[", "]]"],
+        data: {
+          symbol: "0050",
+          selectedStrategy: "macd",
+          selectedTemplate: 0,
+          loading: false,
+          updating: false,
+          backtestResult: null,
+          myChart: null,
+          // 排行榜資料
+          leaderboard: [],
+          leaderboardDate: "",
+          // MACD 參數模板
+          macdTemplates: [
+            {
+              name: "標準參數 (通用型)",
+              vals: [12, 26, 9],
+              desc: "最經典設定",
             },
-            methods: {
-                async fetchStock() {
-                    if (!this.symbol) return;
-                    this.loading = true;
-                    try {
-                        // 確保路徑與你的 Django urls.py 匹配
-                        const response = await fetch(`/stock/${this.symbol}/`);
-                        const result = await response.json();
-                        this.stockData = result;
-                    } catch (error) {
-                        console.error("API 錯誤:", error);
-                    } finally {
-                        this.loading = false;
-                    }
-                }
+            {
+              name: "DiNapoli (短線靈敏)",
+              vals: [8, 17, 9],
+              desc: "反應更快",
+            },
+            {
+              name: "超短線 (高頻當沖)",
+              vals: [6, 13, 4],
+              desc: "極度敏感",
+            },
+            {
+              name: "長線趨勢 (大波段)",
+              vals: [19, 39, 9],
+              desc: "過濾雜訊",
+            },
+            {
+              name: "雙倍週期 (穩健型)",
+              vals: [24, 52, 18],
+              desc: "平滑穩定",
+            },
+            {
+              name: "Linda Raschke (反轉)",
+              vals: [3, 10, 16],
+              desc: "專抓反轉",
+            },
+            {
+              name: "保守訊號 (少交易)",
+              vals: [12, 26, 15],
+              desc: "確認才進場",
+            },
+            {
+              name: "加密貨幣型 (高波)",
+              vals: [10, 20, 5],
+              desc: "幣圈常用",
+            },
+            {
+              name: "月線級別 (超長線)",
+              vals: [5, 35, 5],
+              desc: "看長線",
+            },
+            {
+              name: "手術刀 (極致剝頭皮)",
+              vals: [5, 15, 3],
+              desc: "快進快出",
+            },
+          ],
+          backtestParams: {
+            init_cash: 1000000,
+            start_date: "2015-01-01",
+            end_date: "2026-02-06",
+            m1: 12,
+            m2: 26,
+            m3: 9,
+            k_period: 9,
+            ma_period: 200,
+          },
+        },
+        // 【新增】網頁載入時自動抓取排行榜
+        created() {
+          this.fetchLeaderboard();
+        },
+        mounted() {
+          /* ECharts init later */
+        },
+        methods: {
+          applyTemplate() {
+            const t = this.macdTemplates[this.selectedTemplate];
+            this.backtestParams.m1 = t.vals[0];
+            this.backtestParams.m2 = t.vals[1];
+            this.backtestParams.m3 = t.vals[2];
+          },
+          async updateStockData() {
+            if (!confirm("確定要重抓資料嗎？")) return;
+            this.updating = true;
+            try {
+              await fetch("/api/update-stock/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ symbol: this.symbol }),
+              });
+              alert("更新完成！");
+            } catch (e) {
+              alert("更新失敗");
+            } finally {
+              this.updating = false;
             }
-        }).mount("#app");
+          },
+          async runBacktest() {
+            this.loading = true;
+            try {
+              const res = await fetch("/api/run-backtest/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  symbol: this.symbol,
+                  strategy: this.selectedStrategy,
+                  params: this.backtestParams,
+                }),
+              });
+              const data = await res.json();
+              if (data.error) {
+                alert(data.error);
+                return;
+              }
+              this.backtestResult = data;
+              this.$nextTick(() => {
+                this.renderChart(data.chart_data);
+              });
+            } catch (e) {
+              alert("API 連線錯誤");
+            } finally {
+              this.loading = false;
+            }
+          },
+          // 【新增】抓取排行榜資料
+          async fetchLeaderboard() {
+            try {
+              const res = await fetch("/api/leaderboard/");
+              const data = await res.json();
+              if (data.rankings) {
+                this.leaderboard = data.rankings;
+                this.leaderboardDate = data.date;
+              }
+            } catch (e) {
+              console.error("無法取得排行榜:", e);
+            }
+          },
+          renderChart(chartData) {
+            if (!this.myChart) {
+              this.myChart = echarts.init(
+                document.getElementById("main-chart"),
+              );
+              window.onresize = () => this.myChart.resize();
+            }
+            const option = {
+              tooltip: { trigger: "axis", axisPointer: { type: "cross" } },
+              legend: { data: ["總資產", "股價"], bottom: 0 },
+              grid: {
+                left: "3%",
+                right: "3%",
+                bottom: "10%",
+                containLabel: true,
+              },
+              xAxis: { type: "category", data: chartData.dates },
+              yAxis: [
+                {
+                  type: "value",
+                  name: "資產",
+                  position: "left",
+                  scale: true,
+                  axisLine: { show: true, lineStyle: { color: "#5470C6" } },
+                },
+                {
+                  type: "value",
+                  name: "股價",
+                  position: "right",
+                  scale: true,
+                  splitLine: { show: false },
+                  axisLine: { show: true, lineStyle: { color: "#91CC75" } },
+                },
+              ],
+              series: [
+                {
+                  name: "總資產",
+                  type: "line",
+                  yAxisIndex: 0,
+                  data: chartData.values,
+                  smooth: true,
+                  itemStyle: { color: "#5470C6" },
+                  areaStyle: { opacity: 0.1 },
+                },
+                {
+                  name: "股價",
+                  type: "line",
+                  yAxisIndex: 1,
+                  data: chartData.prices,
+                  smooth: true,
+                  itemStyle: { color: "#91CC75" },
+                  lineStyle: { type: "dashed" },
+                },
+              ],
+            };
+            this.myChart.setOption(option, true);
+          },
+        },
+      });
     </script>
-</body>
+  </body>
 </html>
